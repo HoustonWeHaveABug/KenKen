@@ -233,8 +233,7 @@ node_t *node, **top;
 	for (node = nodes, top = tops; node < header; node++, top++) {
 		link_top(node, *top);
 	}
-	cost = 0;
-	solutions_n = 0;
+	solutions_n = cost = 0;
 	dlx_search();
 	printf("\nCost %lu\nSolutions %lu\n", cost, solutions_n);
 	free(tops);
@@ -250,14 +249,14 @@ unsigned long xy;
 	if (*c < c_min+1 || *c > c_max) {
 		return order;
 	}
-	xy = (unsigned long)(*c-c_min-1);
+	xy = (unsigned long)(*c-c_min);
 	*c = fgetc(stdin);
 	while (*c >= c_min && *c <= c_max) {
 		xy *= base;
 		xy += (unsigned long)(*c-c_min);
 		*c = fgetc(stdin);
 	}
-	return xy;
+	return xy-1;
 }
 
 int tiles_add(cage_t *cage, unsigned long total, cell_t *cell) {
