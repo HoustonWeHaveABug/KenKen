@@ -21,7 +21,7 @@ struct cage_s {
 	cell_t *cells;
 	cell_t *cells_last;
 	cell_t *cell_first;
-	unsigned long *values_last;
+	unsigned long values_last;
 };
 
 typedef struct node_s node_t;
@@ -69,24 +69,28 @@ node_t *node, **top;
 	r = scanf("%lu", &order);
 	if (r != 1 || order < 1) {
 		fprintf(stderr, "Invalid order\n");
+		fflush(stderr);
 		return EXIT_FAILURE;
 	}
 	blocks_n = order*order;
 	blocks = calloc(blocks_n, sizeof(unsigned long));
 	if (!blocks) {
 		fprintf(stderr, "Cannot allocate memory for blocks\n");
+		fflush(stderr);
 		return EXIT_FAILURE;
 	}
 	blocks_last = blocks+blocks_n;
 	r = scanf("%lu", &cages_n);
 	if (r != 1 || cages_n < 1) {
 		fprintf(stderr, "Invalid number of cages\n");
+		fflush(stderr);
 		free(blocks);
 		return EXIT_FAILURE;
 	}
 	cages = malloc(sizeof(cage_t)*cages_n);
 	if (!cages) {
 		fprintf(stderr, "Cannot allocate memory for cages\n");
+		fflush(stderr);
 		free(blocks);
 		return EXIT_FAILURE;
 	}
@@ -95,6 +99,7 @@ node_t *node, **top;
 		r = scanf("%lu", &cage->target);
 		if (r != 1) {
 			fprintf(stderr, "Invalid cage target\n");
+			fflush(stderr);
 			free_cages(cage);
 			free(blocks);
 			return EXIT_FAILURE;
@@ -105,6 +110,7 @@ node_t *node, **top;
 		while (isspace(c));
 		if (feof(stdin)) {
 			fprintf(stderr, "End of input reached before reading operation\n");
+			fflush(stderr);
 			free_cages(cage);
 			free(blocks);
 			return EXIT_FAILURE;
@@ -129,6 +135,7 @@ node_t *node, **top;
 			break;
 		default:
 			fprintf(stderr, "Invalid operation\n");
+			fflush(stderr);
 			free_cages(cage);
 			free(blocks);
 			return EXIT_FAILURE;
@@ -136,6 +143,7 @@ node_t *node, **top;
 		r = scanf("%lu", &cage->cells_n);
 		if (r != 1 || (c == '=' && cage->cells_n != 1) || (c != '=' && cage->cells_n < 2)) {
 			fprintf(stderr, "Invalid number of cells\n");
+			fflush(stderr);
 			free_cages(cage);
 			free(blocks);
 			return EXIT_FAILURE;
@@ -143,6 +151,7 @@ node_t *node, **top;
 		cage->cells = malloc(sizeof(cell_t)*cage->cells_n);
 		if (!cage->cells) {
 			fprintf(stderr, "Cannot allocate memory for cells\n");
+			fflush(stderr);
 			free_cages(cage);
 			free(blocks);
 			return EXIT_FAILURE;
@@ -156,6 +165,7 @@ node_t *node, **top;
 			cell->column = read_xy('@', 'Z', &c, 27UL);
 			if (cell->column >= order) {
 				fprintf(stderr, "Invalid cell column\n");
+				fflush(stderr);
 				free_cages(cage+1);
 				free(blocks);
 				return EXIT_FAILURE;
@@ -163,6 +173,7 @@ node_t *node, **top;
 			cell->row = read_xy('0', '9', &c, 10UL);
 			if (cell->row >= order) {
 				fprintf(stderr, "Invalid cell row\n");
+				fflush(stderr);
 				free_cages(cage+1);
 				free(blocks);
 				return EXIT_FAILURE;
@@ -174,6 +185,7 @@ node_t *node, **top;
 			block = blocks+cell->block;
 			if (*block > 0) {
 				fprintf(stderr, "Duplicate cell\n");
+				fflush(stderr);
 				free_cages(cage+1);
 				free(blocks);
 				return EXIT_FAILURE;
@@ -184,6 +196,7 @@ node_t *node, **top;
 	for (block = blocks; block < blocks_last && *block > 0; block++);
 	if (block < blocks_last) {
 		fprintf(stderr, "Missing cell\n");
+		fflush(stderr);
 		free_cages(cages_last);
 		free(blocks);
 		return EXIT_FAILURE;
@@ -192,12 +205,13 @@ node_t *node, **top;
 	for (cage = cages; cage < cages_last; cage++) {
 		cage->cell_first = NULL;
 		cage->tiles_f(cage, cage->start, cage->cells);
-		cage->values_last = values+values_n;
+		cage->values_last = values_n;
 	}
 	columns_n = blocks_n*CONSTRAINT_TYPES;
 	nodes = malloc(sizeof(node_t)*(columns_n+1+values_n*CONSTRAINT_TYPES));
 	if (!nodes) {
 		fprintf(stderr, "Cannot allocate memory for nodes\n");
+		fflush(stderr);
 		free(values);
 		free_cages(cages_last);
 		free(blocks);
@@ -206,6 +220,7 @@ node_t *node, **top;
 	tops = malloc(sizeof(node_t *)*columns_n);
 	if (!tops) {
 		fprintf(stderr, "Cannot allocate memory for tops\n");
+		fflush(stderr);
 		free(nodes);
 		free(values);
 		free_cages(cages_last);
@@ -221,7 +236,7 @@ node_t *node, **top;
 	row_node = header+1;
 	value = values;
 	for (cage = cages; cage < cages_last; cage++) {
-		for (tile = value; tile < cage->values_last; tile += cage->cells_n) {
+		for (tile = value; tile < values+cage->values_last; tile += cage->cells_n) {
 			set_cell_row_nodes(cage->cells_n*CONSTRAINT_TYPES, cage, tile, cage->cells, get_row_offset(cage->cells->row, *value), get_column_offset(cage->cells->column, *value));
 			value++;
 			for (cell = cage->cells+1; cell <= cage->cells_last; cell++) {
@@ -236,6 +251,7 @@ node_t *node, **top;
 	solutions_n = cost = 0;
 	dlx_search();
 	printf("\nCost %lu\nSolutions %lu\n", cost, solutions_n);
+	fflush(stdout);
 	free(tops);
 	free(nodes);
 	free(values);
@@ -408,6 +424,7 @@ cell_t *cell;
 		values_tmp = realloc(values, sizeof(unsigned long)*(values_n+cage->cells_n));
 		if (!values_tmp) {
 			fprintf(stderr, "Cannot reallocate memory for values\n");
+			fflush(stderr);
 			free(values);
 			return 0;
 		}
@@ -417,6 +434,7 @@ cell_t *cell;
 		values = malloc(sizeof(unsigned long)*cage->cells_n);
 		if (!values) {
 			fprintf(stderr, "Cannot allocate memory for values\n");
+			fflush(stderr);
 			return 0;
 		}
 	}
@@ -480,6 +498,7 @@ node_t *column_min, *column, *row, *node;
 			}
 			puts("");
 		}
+		fflush(stdout);
 		solutions_n++;
 	}
 	else {
